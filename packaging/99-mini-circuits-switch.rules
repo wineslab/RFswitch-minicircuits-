@@ -1,0 +1,13 @@
+# Mini-Circuits Solid-State Switch (USB HID, VID 0x20CE / PID 0x0022)
+# Lets non-root users claim the HID interface so the Python library can
+# write/read the interrupt endpoints without sudo.
+#
+# Install:
+#   sudo cp 99-mini-circuits-switch.rules /etc/udev/rules.d/
+#   sudo udevadm control --reload-rules && sudo udevadm trigger
+#   # then unplug/replug the switch
+#
+# "plugdev" is the conventional group for hot-pluggable USB devices; make sure
+# your user is in it (id -nG | grep plugdev). Swap to "users" or "dialout" if
+# your distro lacks plugdev.
+SUBSYSTEM=="usb", ATTRS{idVendor}=="20ce", ATTRS{idProduct}=="0022", MODE="0666", GROUP="plugdev", TAG+="uaccess"

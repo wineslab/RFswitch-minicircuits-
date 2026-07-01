@@ -1,0 +1,21 @@
+# Per-machine virtualenv — rebuilt by ./setup.sh, never copy it between machines
+.venv/
+
+# Saved presets are per-machine user data — keep them local, don't share/copy
+webapp/presets.json
+
+# Python caches
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Editor / OS cruft
+.vscode/
+.DS_Store
+
+# Claude Code local config
+.claude/
+
+logs/
+
+SESSION_LOG.md

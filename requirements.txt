@@ -1,0 +1,5 @@
+# Core driver
+pyusb>=1.2        # also needs a libusb backend on the system
+
+# Web app (webapp/app.py)
+Flask>=3.0

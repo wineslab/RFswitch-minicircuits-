@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mini-Circuits Switch Control</title>
+  <link rel="stylesheet" href="{{ static_v('style.css') }}" />
+</head>
+<body>
+  <header>
+    <h1>Mini-Circuits Solid-State Switch</h1>
+    <div class="head-right">
+      <div id="status" class="status">connecting…</div>
+      <button id="refresh" class="ghost btn-sm" title="Re-read all states">↻ Refresh</button>
+    </div>
+  </header>
+
+  <section id="banner" class="alert hidden" role="alert">
+    <div>
+      <strong class="alert-title">No switch connected</strong>
+      <span id="banner-text" class="alert-desc"></span>
+    </div>
+    <button id="retry" class="ghost btn-sm">Reconnect</button>
+  </section>
+
+  <main>
+    <!-- One wide rack row per connected unit. Click a port to route its COM there. -->
+    <section id="rack" class="rack"></section>
+
+    <!-- Presets: save the current routing and recall it with one click -->
+    <section class="card">
+      <div class="card-head">
+        <h2>Presets</h2>
+        <span class="hint">Save the current routing of all units, then recall it in one click</span>
+      </div>
+      <div id="presets" class="presets"></div>
+      <div class="preset-save">
+        <input id="preset-name" type="text" placeholder="preset name, e.g. “cal path” or “DUT 2”" />
+        <button id="preset-save">＋ Save current</button>
+      </div>
+    </section>
+
+    <!-- Raw SCPI console -->
+    <section class="card">
+      <div class="card-head">
+        <h2>Raw SCPI console</h2>
+        <span class="hint">Send any command below to the selected unit</span>
+      </div>
+      <div class="scpi">
+        <select id="scpi-serial"></select>
+        <input id="scpi-cmd" type="text" placeholder="e.g. SP4T:A:STATE?  ·  SP4T:A:STATE:3  ·  *:MN?" />
+        <button id="scpi-send">Send</button>
+      </div>
+      <pre id="scpi-out" class="scpi-out"></pre>
+    </section>
+
+    <!-- =========================  COMMAND REFERENCE  ========================= -->
+    <section class="card ref">
+      <div class="card-head">
+        <h2>Command reference &amp; cheat sheet</h2>
+        <span class="hint">Click a section to expand it — type to filter across all</span>
+      </div>
+      <input id="ref-filter" type="text" placeholder="🔎 filter commands… (e.g. SEQ, ethernet, firmware)" />
+      <p id="ref-empty" class="empty hidden">No commands match that filter.</p>
+
+      <!-- device info — FIRST, open by default -->
+      <details class="ref-block" data-default-open open>
+        <summary>Device information</summary>
+        <ul class="ref-notes">
+          <li><b>Model:</b> USB-2SP4T-852H — dual SP4T (COM&nbsp;A &amp; COM&nbsp;B, each → ports 1–4), 50&nbsp;Ω, SMA female, USB Mini-B.</li>
+          <li><b>Connected now:</b> serials <code>12602090027</code> &amp; <code>12602090016</code>, firmware <code>B8</code>.</li>
+          <li><b>852H family (datasheet):</b> 10–8500&nbsp;MHz, solid-state absorptive, daisy-chain up to 35 modules over the serial control bus.</li>
+          <li><b>Panel layout (bottom row of SMA):</b> <code>A1 A2 [COM A] A3 A4 | B1 B2 [COM B] B3 B4</code>.</li>
+          <li><b>Transport:</b> USB HID, VID <code>0x20CE</code> / PID <code>0x0022</code>. ASCII SCPI is written to interrupt-OUT endpoint <code>0x01</code>; the reply comes back on interrupt-IN <code>0x81</code> as a 64-byte HID report (byte&nbsp;0 is the report id and is dropped).</li>
+          <li><b>Addressing:</b> a command may carry a unit address prefix. <b>No prefix</b> = the local/connected unit; <code>*</code> = broadcast to all; a digit such as <code>01</code> = a specific daisy-chain address.</li>
+          <li><b>State values:</b> a COM routes to port <code>1–4</code>; <code>0</code> means open / not routed.</li>
+        </ul>
+      </details>
+
+      <!-- identity -->
+      <details class="ref-block">
+        <summary>Identity &amp; system</summary>
+        <table class="ref-table">
+          <thead><tr><th>Command</th><th>What it does</th><th>Example reply</th></tr></thead>
+          <tbody>
+            <tr><td><code>MN?</code></td><td>Model name</td><td><code>MN=USB-2SP4T-852H</code></td></tr>
+            <tr><td><code>SN?</code></td><td>Serial number</td><td><code>SN=12602090027</code></td></tr>
+            <tr><td><code>FIRMWARE?</code></td><td>Firmware revision string</td><td><code>B8</code></td></tr>
+            <tr><td><code>AssignAddresses</code></td><td>Auto-assign addresses to all chained (daisy-chained) units</td><td><code>1</code></td></tr>
+            <tr><td><code>NumberOfSlaves?</code></td><td>Count of chained slave units</td><td><code>0</code></td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <!-- switching -->
+      <details class="ref-block">
+        <summary>Switching (SP4T)</summary>
+        <p class="ref-sub">General form: <code>[Sw_Type]:[Ch]:STATE[:state]</code> — here <code>Sw_Type=SP4T</code>, <code>Ch=A</code> or <code>B</code>. This is exactly what the faceplate above sends when you click a port.</p>
+        <table class="ref-table">
+          <thead><tr><th>Command</th><th>What it does</th><th>Example reply</th></tr></thead>
+          <tbody>
+            <tr><td><code>SP4T:A:STATE?</code></td><td>Current port of COM&nbsp;A</td><td><code>3</code></td></tr>
+            <tr><td><code>SP4T:A:STATE:3</code></td><td>Route COM&nbsp;A → port 3</td><td><code>1</code></td></tr>
+            <tr><td><code>SP4T:B:STATE?</code></td><td>Current port of COM&nbsp;B</td><td><code>0</code></td></tr>
+            <tr><td><code>SP4T:B:STATE:4</code></td><td>Route COM&nbsp;B → port 4</td><td><code>1</code></td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <!-- sequence -->
+      <details class="ref-block">
+        <summary>Sequence engine (<code>SEQ</code>)</summary>
+        <p class="ref-sub">Program a stored list of switch states with dwell times, then run it on the unit.</p>
+        <table class="ref-table">
+          <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+          <tbody>
+            <tr><td><code>SEQ:STEPS:[n]</code> / <code>SEQ:STEPS?</code></td><td>Set / get the number of steps in the sequence</td></tr>
+            <tr><td><code>SEQ:STEP:[i]</code> / <code>SEQ:STEP?</code></td><td>Select / get the active step to edit or read</td></tr>
+            <tr><td><code>SEQ:STATE:[s]</code> / <code>SEQ:STATE?</code></td><td>State(s) for the current step — combined index (<code>8</code>) or per-channel (<code>1:2:2:1</code>)</td></tr>
+            <tr><td><code>SEQ:DWELLTIME:[t]</code> / <code>SEQ:DWELLTIME?</code></td><td>Dwell time for the current step (in the current units)</td></tr>
+            <tr><td><code>SEQ:DWELLUNITS:[u]</code> / <code>SEQ:DWELLUNITS?</code></td><td>Dwell units — <code>U</code>=µs, <code>M</code>=ms, <code>S</code>=s</td></tr>
+            <tr><td><code>SEQ:CYCLES:[n]</code> / <code>SEQ:CYCLES?</code></td><td>Number of times to run the whole sequence</td></tr>
+            <tr><td><code>SEQ:DIRECTION:[m]</code> / <code>SEQ:DIRECTION?</code></td><td>Run direction — <code>0</code>=forward, <code>1</code>=reverse, <code>2</code>=bidirectional</td></tr>
+            <tr><td><code>SEQ:MODE:[ON|OFF]</code> / <code>SEQ:MODE?</code></td><td>Start / stop (and query) the stored sequence</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <!-- ethernet -->
+      <details class="ref-block">
+        <summary>Ethernet config (<code>ETHERNET:CONFIG</code>)</summary>
+        <p class="ref-sub">Only applies to Ethernet-equipped units (not this USB model). Change settings, then <code>INIT</code> to commit.</p>
+        <table class="ref-table">
+          <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+          <tbody>
+            <tr><td><code>ETHERNET:CONFIG:LISTEN?</code></td><td>Current <code>ip;mask;gateway</code></td></tr>
+            <tr><td><code>ETHERNET:CONFIG:MAC?</code></td><td>MAC address</td></tr>
+            <tr><td><code>ETHERNET:CONFIG:DHCPENABLED?</code> / <code>:DHCPENABLED:[0|1]</code></td><td>Get / set DHCP on or off</td></tr>
+            <tr><td><code>ETHERNET:CONFIG:IP?</code> / <code>:IP:[addr]</code></td><td>Get / set static IP address</td></tr>
+            <tr><td><code>ETHERNET:CONFIG:NG?</code> / <code>:NG:[addr]</code></td><td>Get / set network gateway</td></tr>
+            <tr><td><code>ETHERNET:CONFIG:SM?</code> / <code>:SM:[mask]</code></td><td>Get / set subnet mask</td></tr>
+            <tr><td><code>ETHERNET:CONFIG:HTPORT?</code> / <code>:HTPORT:[p]</code></td><td>Get / set HTTP port</td></tr>
+            <tr><td><code>ETHERNET:CONFIG:TELNETPORT?</code> / <code>:TELNETPORT:[p]</code></td><td>Get / set Telnet port</td></tr>
+            <tr><td><code>ETHERNET:CONFIG:SSHPORT?</code> / <code>:SSHPORT:[p]</code></td><td>Get / set SSH port</td></tr>
+            <tr><td><code>ETHERNET:CONFIG:SSHLOGINNAME?</code> / <code>:SSHLOGINNAME:[name]</code></td><td>Get / set SSH login name</td></tr>
+            <tr><td><code>ETHERNET:CONFIG:PWDENABLED?</code> / <code>:PWDENABLED:[0|1]</code></td><td>Get / set password protection on or off</td></tr>
+            <tr><td><code>ETHERNET:CONFIG:PWD?</code> / <code>:PWD:[pwd]</code></td><td>Get / set the password</td></tr>
+            <tr><td><code>ETHERNET:CONFIG:INIT</code></td><td>Apply / commit the Ethernet configuration</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <!-- python API -->
+      <details class="ref-block">
+        <summary>Python API (<code>mini_circuits_switch.py</code>)</summary>
+        <p class="ref-sub">DLL-style wrappers in the library — each maps to the SCPI above.</p>
+        <table class="ref-table">
+          <thead><tr><th>Call</th><th>What it does</th></tr></thead>
+          <tbody>
+            <tr><td><code>connect([sn])</code> / <code>disconnect()</code></td><td>Open a unit (by serial, or the first one) / release the USB handle</td></tr>
+            <tr><td><code>connect_by_address(addr)</code></td><td>Open a unit and target a daisy-chain address</td></tr>
+            <tr><td><code>get_usb_connection_status()</code></td><td><code>1</code> if the handle is open</td></tr>
+            <tr><td><code>read_model_name()</code> / <code>read_sn()</code> / <code>get_firmware()</code></td><td>Identity (alias for <code>MN?</code>/<code>SN?</code>/<code>FIRMWARE?</code>)</td></tr>
+            <tr><td><code>set_address(a)</code> / <code>get_address()</code></td><td>Set / get the SCPI address prefix for chained units</td></tr>
+            <tr><td><code>get_available_sn_list()</code> / <code>get_available_address_list()</code></td><td>Serials / addresses of all connected units</td></tr>
+            <tr><td><code>set_sp4t_com_to(port)</code> / <code>get_sp4t_state()</code></td><td>Route / read a COM (alias for <code>SP4T:*:STATE</code>)</td></tr>
+            <tr><td><code>set_a(p)</code> / <code>set_b(p)</code> / <code>get_a()</code> / <code>get_b()</code></td><td>Per-COM shortcuts</td></tr>
+            <tr><td><code>set_sequence_step(step, switch_to, dwell, units)</code></td><td>Program one full sequence step in a single call</td></tr>
+            <tr><td><code>set_sequence_on()</code> / <code>set_sequence_off()</code> / <code>seq_get_mode()</code></td><td>Start / stop / query the stored sequence</td></tr>
+            <tr><td><code>get_ethernet_*()</code> / <code>save_ethernet_*()</code></td><td>Read / write the Ethernet config block</td></tr>
+            <tr><td><code>device_info()</code></td><td>USB equivalent of the network <code>MCLRFSWITCH?</code> info query</td></tr>
+            <tr><td><code>reset_device()</code> / <code>get_ext_firmware()</code></td><td>Byte-0-only DLL calls — <b>not</b> available over ASCII SCPI (raise <code>NotImplementedError</code>)</td></tr>
+          </tbody>
+        </table>
+      </details>
+
+      <!-- other interfaces -->
+      <details class="ref-block">
+        <summary>Other interfaces (per manual)</summary>
+        <ul class="ref-notes">
+          <li><b>Binary byte-0 protocol:</b> the manual also documents a binary command-code protocol (<code>40</code>=MN, <code>41</code>=SN, <code>42</code>=FW, <code>204</code>/<code>205</code>=SEQ set/get). This USB app uses the ASCII SCPI protocol instead.</li>
+          <li><b>Network text commands</b> (HTTP / Telnet / SSH on Ethernet units): <code>SETA=[n]</code>, <code>SETB=[n]</code>, <code>SWPORT?</code>, and the combined info query <code>MCLRFSWITCH?</code>.</li>
+        </ul>
+      </details>
+
+      <!-- REST API of this site -->
+      <details class="ref-block">
+        <summary>This site's REST API</summary>
+        <table class="ref-table">
+          <thead><tr><th>Method &amp; path</th><th>What it does</th></tr></thead>
+          <tbody>
+            <tr><td><code>GET /api/health</code></td><td>Live per-unit presence (drives the connected/offline status)</td></tr>
+            <tr><td><code>POST /api/reconnect</code></td><td>Drop handles and re-open after a replug</td></tr>
+            <tr><td><code>GET /api/units</code></td><td>Connected units + channels + ports</td></tr>
+            <tr><td><code>GET /api/states</code></td><td>Current A/B state of every unit</td></tr>
+            <tr><td><code>GET /api/units/&lt;sn&gt;/state</code></td><td>Read one unit's A/B state</td></tr>
+            <tr><td><code>POST /api/units/&lt;sn&gt;/state</code></td><td>Route a COM — body <code>{"A":3}</code> and/or <code>{"B":2}</code></td></tr>
+            <tr><td><code>POST /api/scpi</code></td><td>Send a raw command — body <code>{"serial","command"}</code></td></tr>
+          </tbody>
+        </table>
+      </details>
+    </section>
+  </main>
+
+  <footer>
+    <span id="last-update"></span>
+  </footer>
+
+  <script src="{{ static_v('app.js') }}"></script>
+</body>
+</html>
