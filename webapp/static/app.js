@@ -7,6 +7,7 @@ let CONFIG = { channels: ["A", "B"], ports: [1, 2, 3, 4] };
 // COM A = CH-1, COM B = CH-2. Other units render the plain "COM A/B" label.
 const COM_ALIASES = {
   "12602090027": { A: "CH-1", B: "CH-2" },
+  "12602090016": { A: "CH-3", B: "CH-4" },
 };
 
 const KNOWN = {};      // serial -> {serial, model, firmware} (every unit seen this session)
