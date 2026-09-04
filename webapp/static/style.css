@@ -140,13 +140,8 @@ input[type=text] { flex: 1; min-width: 220px; font-family: ui-monospace, "SF Mon
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
 }
 
-/* top edge: serial-ctrl snap conns, green LED, USB Mini-B */
+/* top edge: green LED, USB Mini-B */
 .top-edge { display: flex; align-items: center; gap: 10px; height: 26px; }
-.snap {
-  font-size: 9px; letter-spacing: .08em; font-weight: 700; color: #4a5159;
-  background: linear-gradient(#7c8590, #5b636d); color: #eef1f4;
-  padding: 3px 7px; border-radius: 3px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.35), 0 1px 1px rgba(0,0,0,.25);
-}
 .edge-spacer { flex: 1; }
 .edge-label { font-size: 10px; letter-spacing: .1em; color: #5a626c; font-weight: 700; }
 .usb { width: 34px; height: 15px; border-radius: 3px;

@@ -83,8 +83,6 @@ function sp4tGroup(serial, ch, current) {
 function frontFace(u, st) {
   return `<div class="face front">
             <div class="top-edge">
-              <span class="snap" title="Serial Ctrl Out (daisy-chain)">SER&nbsp;OUT</span>
-              <span class="snap" title="Serial Ctrl In (daisy-chain)">SER&nbsp;IN</span>
               <span class="edge-spacer"></span>
               <span class="led pwr" title="power / connected"></span>
               <span class="edge-label">PWR</span>
