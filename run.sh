@@ -13,5 +13,5 @@ if [ ! -x "$PY" ]; then
   exit 1
 fi
 
-echo "Starting mini-switch on http://127.0.0.1:5000  (Ctrl-C to stop)"
+echo "Starting mini-switch on http://0.0.0.0:5000 — reachable from the LAN at this machine's IP  (Ctrl-C to stop)"
 exec "$PY" webapp/app.py

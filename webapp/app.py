@@ -236,6 +236,6 @@ if __name__ == "__main__":
     else:
         print(f"[mini-switch] no hardware yet: {st['error']}")
         print("[mini-switch] plug in the switch and use the Retry button / POST /api/reconnect")
-    print("[mini-switch] serving on http://127.0.0.1:5000")
+    print("[mini-switch] serving on http://0.0.0.0:5000 (reachable from the LAN)")
     # use_reloader=False so the USB handle isn't claimed twice by the reloader.
-    app.run(host="127.0.0.1", port=5000, threaded=True, use_reloader=False)
+    app.run(host="0.0.0.0", port=5000, threaded=True, use_reloader=False)
